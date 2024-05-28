@@ -64,6 +64,6 @@ print(vec.hamming_distance(res, output_vecs[0]))
 hil = vec.consensus_sum([b0, b1, b2, b3])
 res = vec.xor(t, hil)
 print_hd(res)
-# unexpected behavior: seeing a hamming distance of ~4k for any class included in the hil
+# unexpected behavior: seeing a hamming distance of ~4k for any class included in the hil rather solely the 0 class
 
 
