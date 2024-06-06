@@ -5,6 +5,7 @@ import vector as vec
 from intensities import intensity_vecs
 from positions import row_vecs, col_vecs
 from outputs import output_vecs
+import time
 
 
 def encode(matrix):
@@ -18,52 +19,63 @@ def encode(matrix):
     return vec.consensus_sum(pixels)
 
 
-def print_hd(vector):
+# intakes the resultant vector from t XOR hil, returns the predicted output class via minimizing hamming distance
+def predict(vector):
+    min_hd = 10000
+    prediction = -1
     for i in range(10):
-        print(f'[{i}] = {vec.hamming_distance(vector, output_vecs[i])}')
+        cur_hd = vec.hamming_distance(vector, output_vecs[i])
+        print(f"hd to class {i}: {cur_hd}")
+        if cur_hd < min_hd:
+            min_hd = cur_hd
+            prediction = i
+    return prediction
 
 
 (train_images, train_labels), (test_images, test_labels) = tf.keras.datasets.fashion_mnist.load_data()
 
-# for now writing out the encoded vectors explicitly, will soon change to an iterative approach
+start_time = time.time()
 
-# class 0 expected for train images: 1, 2, 4, 10, 17, 26, 48
-s0 = vec.consensus_sum([encode(train_images[1]), encode(train_images[2]), encode(train_images[4])])
-b0 = vec.xor(s0, output_vecs[0])
+class_vecs = {i: [] for i in range(10)}
 
-# class 1: 16, 21, 38, 69, 71, 74, 78, 80, 86, 97, 98
-s1 = vec.consensus_sum([encode(train_images[16]), encode(train_images[21]), encode(train_images[38])])
-b1 = vec.xor(s1, output_vecs[1])
+for i in range(1000):  # append each encoded image to the corresponding class list
+    img = encode(train_images[i])
+    class_vecs[train_labels[i]].append(img)
 
-# class 2: 5, 7, 27, 37, 45, 53, 54, 65, 92
-s2 = vec.consensus_sum([encode(train_images[5]), encode(train_images[7]), encode(train_images[27])])
-b2 = vec.xor(s2, output_vecs[2])
+sums = []
+for i in range(10):  # create a summed vector representation for each class
+    sums.append(vec.consensus_sum(class_vecs[i]))
 
-# class 3: 3, 20, 25, 31, 47, 49, 50, 51, 58, 59, 70, 73, 81, 91, 94
-s3 = vec.consensus_sum([encode(train_images[3]), encode(train_images[20]), encode(train_images[25])])
-b3 = vec.xor(s3, output_vecs[3])
+bound_vecs = []
+for i in range(10):  # bind each summed representation
+    bound_vecs.append(vec.xor(sums[i], output_vecs[i]))
 
-# class 4: 19, 22, 24, 28, 29, 68, 75, 76, 96
-# class 5: 8, 9, 12, 13, 30, 36, 43, 60, 62, 63, 82
-# class 6: 18, 32, 33, 39, 40, 55, 56, 72, 77, 95
-# class 7: 6, 14, 41, 46, 52, 83, 85, 87
-# class 8: 23, 35, 57, 99
-# class 9: 0, 11, 15, 42, 44, 79, 84, 88, 89, 90, 93
+hil = vec.consensus_sum(bound_vecs)  # consensus sum the bound representations into the hil
 
-t = encode(train_images[48])  # expected output class of 0
-res = vec.xor(t, b0)
-print(vec.hamming_distance(res, output_vecs[0]))
-res = vec.xor(t, b1)
-print(vec.hamming_distance(res, output_vecs[0]))
-res = vec.xor(t, b2)
-print(vec.hamming_distance(res, output_vecs[0]))
-res = vec.xor(t, b3)
-print(vec.hamming_distance(res, output_vecs[0]))
-# above, we see the expected minimum hamming distance to only the corresponding output class of 0
+# testing
+correct = 0
+for i in range(100):
+    t = encode(test_images[i])
+    res = vec.xor(hil, t)
 
-hil = vec.consensus_sum([b0, b1, b2, b3])
-res = vec.xor(t, hil)
-print_hd(res)
-# unexpected behavior: seeing a hamming distance of ~4k for any class included in the hil rather solely the 0 class
+    pre = predict(res)
+    expected = test_labels[i]
 
+    if pre == expected:
+        correct += 1
+    print(f"expected: {expected}, predicted: {pre}")
 
+print(f"correct/total = {correct}/100 = {correct / 100:.2f}")
+
+end_time = time.time()
+
+elapsed_time = end_time - start_time
+print(f"Elapsed time: {elapsed_time:.2f} seconds")
+
+# result from testing with 500 trained examples:
+# correct/total = 48/100 = 0.48
+# Elapsed time: 869.42 seconds
+
+# result from testing with 1000 trained examples:
+# correct/total = 52/100 = 0.52
+# Elapsed time: 1562.24 seconds
