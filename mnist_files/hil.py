@@ -79,3 +79,13 @@ print(f"Elapsed time: {elapsed_time:.2f} seconds")
 # result from testing with 1000 trained examples:
 # correct/total = 52/100 = 0.52
 # Elapsed time: 1562.24 seconds
+
+# second testing phase... (after adjusting intensity encoding)
+
+# result from testing with 500 trained examples:
+# correct/total = 55/100 = 0.55
+# Elapsed time: 860.27 seconds
+
+# result from testing with 1000 trained examples
+# correct/total = 51/100 = 0.51
+# Elapsed time: 1550.51 seconds
