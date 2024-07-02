@@ -39,6 +39,7 @@ start_time = time.time()
 class_vecs = {i: [] for i in range(10)}
 
 for i in range(1000):  # append each encoded image to the corresponding class list
+    print(f'current i: {i}')
     img = encode(train_images[i])
     class_vecs[train_labels[i]].append(img)
 
@@ -89,3 +90,13 @@ print(f"Elapsed time: {elapsed_time:.2f} seconds")
 # result from testing with 1000 trained examples
 # correct/total = 51/100 = 0.51
 # Elapsed time: 1550.51 seconds
+
+# third testing phase... (after linearly encoding the positional vectors)
+
+# 500 training examples
+# correct/total = 51/100 = 0.51
+# Elapsed time: 864.59 seconds
+
+# 1000 training examples
+# correct/total = 48/100 = 0.48
+# Elapsed time: 1558.46 seconds
