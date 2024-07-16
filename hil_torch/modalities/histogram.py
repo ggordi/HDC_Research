@@ -1,5 +1,6 @@
 import vector as vec
 from bases import output_vecs
+from intensities import intensity_vecs
 import numpy as np
 
 
@@ -18,6 +19,8 @@ def create_count_vecs(max_count):
 
     return vec_list
 
+count_vecs = create_count_vecs(28 * 28)
+
 
 # create histogram dictionary for entered matrix of intensity values
 def create_histogram(matrix, width, height):
@@ -25,14 +28,19 @@ def create_histogram(matrix, width, height):
     for row in range(0, width):
         for col in range(0, height):
             pix = matrix[row][col]
-            if pix in hist:
-                hist[pix] += 1
-            else:
-                hist[pix] = 1
+            hist[pix] = hist.get(pix, 0) + 1  # set to 1 if not present
     return hist
 
 
-count_vecs = create_count_vecs(28 * 28)
+# encode an image using the histogram of its pixel intensities
+def encode_histogram(matrix, width, height):
+    img_hist = create_histogram(matrix, width, height)
+    vec_list = []
+    for intensity, count in img_hist.items():
+        vec_list.append(vec.xor(intensity_vecs[intensity], count_vecs[count]))  # count_vecs created above
+    return vec.consensus_sum(vec_list)
 
-img = [[1, 240, 240], [0, 0, 1], [255, 255, 255]]
-print(create_histogram(img, 3, 3))
+
+# train the model and test it
+
+
