@@ -26,7 +26,29 @@ def calculate_mean():
     return total/(784*10000)
 
 
+# resulting bin edges: [0, 3, 17, 36, 53, 69, 83, 98, 111, 124, 136, 148, 158, 168, 177, 185, 192, 199, 205, 211,
+# 217, 222, 228, 234, 244, 255]
+def calculate_bins():
+    values = np.sort(train_images.flatten())
+    num_bins = 50
+    bin_edges = np.unique(np.percentile(values, np.linspace(0, 100, num_bins + 1)))  # handle excess zeros
+    print([int(x) for x in list(bin_edges)])
+    # visualize binning
+    plt.hist(values, bins=bin_edges, color='blue', edgecolor='black')
+    plt.xlabel('pixel intensity')
+    plt.ylabel('number of occurrences')
+    plt.title('histogram with binning')
+    plt.show()
+
+
 # next: use distribution statistics to determine bin edges. then, assign each bin a hypervector.
 # encode an image using the corresponding bin hypervector for each pixel. sum into a single representation
 # for the image.
+# - use narrower bins for intensities that occur more frequently (small variations are captured more precisely)
+# - use wider bins for less frequent intensities as they simplify the representation
+
+# question: should this be used in combination with the bases for geographical location? so,
+# just replacing the pixel intensity part of the encoding in hil.py, keeping the positional
+# things the same?
+
 
