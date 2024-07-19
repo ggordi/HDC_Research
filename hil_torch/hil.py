@@ -1,4 +1,4 @@
-# hil using pytorch
+# hil using pytorch, using a spatial intensity encoding
 
 import tensorflow as tf
 import vector as vec
