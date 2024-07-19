@@ -1,3 +1,5 @@
+# encoding images using pixel intensity histograms
+
 import vector as vec
 from bases import output_vecs
 from intensities import intensity_vecs
