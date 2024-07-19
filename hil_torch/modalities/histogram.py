@@ -79,11 +79,11 @@ def train_test(num_examples):
 
         min_hd = 10000
         prediction = -1
-        for i in range(10):
-            cur_hd = vec.hamming_distance(res, output_vecs[i])
+        for j in range(10):
+            cur_hd = vec.hamming_distance(res, output_vecs[j])
             if cur_hd < min_hd:
                 min_hd = cur_hd
-                prediction = i
+                prediction = j
         expected = test_labels[i]
 
         if prediction == expected:
