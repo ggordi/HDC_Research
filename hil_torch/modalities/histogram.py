@@ -23,8 +23,7 @@ def create_count_vecs(max_count):
     return vec_list
 
 
-max_count = 28 * 28  # images in the fashion mnist dataset are 28 by 28 pixels
-count_vecs = create_count_vecs(28 * 28)
+count_vecs = create_count_vecs(28 * 28) # images in the fashion mnist dataset are 28 by 28 pixels
 
 
 # create histogram for entered image (matrix of intensity values)
@@ -99,3 +98,4 @@ print(train_test(50000))
 
 # achieved 13.6% accuracy when trained on 10,000 examples and 35.8% accuracy when trained on 50,000 examples
 # in both cases, 1000 images from the test set were used
+# however, results were inconsistent - 13.3% accuracy the next time trained on 50,000 examples.
