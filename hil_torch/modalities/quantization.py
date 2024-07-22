@@ -43,10 +43,6 @@ def calculate_bins():
     plt.show()
 
 
-(train_images, train_labels), (test_images, test_labels) = tf.keras.datasets.fashion_mnist.load_data()
-
-edges = [0, 11, 42, 69, 93, 116, 136, 155, 171, 185, 197, 207, 217, 226, 237, 255]  # calculate_bins() num_bins = 30
-
 # encode bins so the central vector represents the mean, increase hamming distance to mean vector as move over bins
 # (difference in pixels) * 20 count bit changes per bin
 # so, going from bin 0 to bin 1, 0 to 11, will change 11 - 0 = 11 * 20 = 220 bits
@@ -60,14 +56,12 @@ def encode_bins():
     cur = 3
     idx = 0
 
-    print(bin_vecs[cur])
-
     for i in range(2, -1, -1):  # encode vectors for the bins preceding center
         dif = (edges[cur] - edges[i]) * 20  # how many bits to flip
         cur_vec = bin_vecs[cur]
         next_bits = cur_vec.bits.clone()  # type = tensor
-        for j in range(idx, idx + dif + 1):
-            next_bits[j] = next_bits[j] ^ 1  # xor with 0 to flip digit
+        for j in range(idx, idx + dif):
+            next_bits[j] ^= 1  # xor with 0 to flip digit
         idx += dif
         bin_vecs[cur - 1] = vec.Vector(next_bits)
         cur -= 1
@@ -78,16 +72,13 @@ def encode_bins():
         dif = (edges[i] - edges[cur]) * 20
         cur_vec = bin_vecs[cur]
         next_bits = cur_vec.bits.clone()
-        for j in range(idx, idx - dif - 1, -1):
-            next_bits[j] = next_bits[j] ^ 1
+        for j in range(idx, idx - dif, -1):
+            next_bits[j] ^= 1
         idx -= dif
         bin_vecs[cur + 1] = vec.Vector(next_bits)
         cur += 1
 
     return bin_vecs
-
-
-bins = encode_bins()
 
 
 # encode an image (matrix of pixel intensities) - each image is the sum of its pixel intensities bound to their location
@@ -102,11 +93,59 @@ def encode_image(matrix):
 
     return vec.consensus_sum(pixel_vecs)
 
-img = [[10, 200, 89], [0, 199, 243], [109, 109, 255]]  # test encode_img 
-print(encode_image(img).bits[:100])
+
+# train and test
+def train_test(num_examples):
+    # train
+    class_vecs = {i: [] for i in range(10)}
+
+    for i in range(num_examples):
+        print(f'encoding image {i+1}')
+        class_vecs[train_labels[i]].append(encode_image(train_images[i]))
+
+    sums = []
+    for i in range(10):
+        cons = vec.consensus_sum(class_vecs[i])
+        if cons is not None:
+            sums.append(cons)
+
+    bound_vecs = []
+    count = 0
+    for sum_vec in sums:
+        bound_vecs.append(vec.xor(sum_vec, output_vecs[count]))
+        count += 1
+
+    hil = vec.consensus_sum(bound_vecs)
+
+    # test
+    correct = 0
+    for i in range(1000):
+        print(f'testing image {i+1}')
+        t = encode_image(test_images[i])
+        res = vec.xor(hil, t)
+
+        min_hd = 10000
+        prediction = -1
+        for j in range(10):
+            cur_hd = vec.hamming_distance(res, output_vecs[j])
+            if cur_hd < min_hd:
+                min_hd = cur_hd
+                prediction = j
+        expected = test_labels[i]
+
+        if prediction == expected:
+            correct += 1
+
+    return correct / 1000
 
 
+(train_images, train_labels), (test_images, test_labels) = tf.keras.datasets.fashion_mnist.load_data()
 
+edges = [0, 11, 42, 69, 93, 116, 136, 155, 171, 185, 197, 207, 217, 226, 237, 255]  # calculate_bins() num_bins = 30
+bins = encode_bins()
 
+print(train_test(10000))
 
+# train/test results (testing on 1000 test set images)
+# - achieved 48.4% accuracy when trained on 1,000 examples
 
