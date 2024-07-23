@@ -1,7 +1,6 @@
 # encoding images using a distributed quantization of pixel intensities
 
 import tensorflow as tf
-import torch
 import numpy as np
 import matplotlib.pyplot as plt
 import vector as vec
