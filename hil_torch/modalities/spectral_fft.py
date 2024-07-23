@@ -8,7 +8,6 @@ import matplotlib.pyplot as plt
 
 for i in range(0, 4):
     img = train_images[i * 46]
-
     img_fft = np.fft.fft2(img)  # compute 2d fft
     shifted_fft = np.fft.fftshift(img_fft)  # shift zero to center
     mag_spec = np.abs(shifted_fft)  # magnitude spectrum
