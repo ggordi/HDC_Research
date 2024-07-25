@@ -9,8 +9,7 @@ import matplotlib.pyplot as plt
 (train_images, train_labels), (test_images, test_labels) = tf.keras.datasets.fashion_mnist.load_data()
 
 
-# calculate bin edges
-# fix this --> linear spacing is not going to work
+# calculate bin edges based on percentiles
 def calculate_edges(num_bins):
     # create bins for the frequencies shown in the dataset
     f_train = np.abs(np.fft.fft2(train_images)).flatten()
@@ -18,7 +17,7 @@ def calculate_edges(num_bins):
 
 
 # linearly encode bins for the magnitudes of the frequencies in the images
-# fix this --> linear encoding is not going to work
+# adust this to nonlinear difference in bits
 def encode_bins(num_bins):
     bins = [vec.Vector()]
     changes = 5000 // num_bins
