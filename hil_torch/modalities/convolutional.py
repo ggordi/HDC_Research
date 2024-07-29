@@ -10,7 +10,7 @@ import torch.optim as optim
 transform = transforms.ToTensor()
 device = 'cuda'
 
-batch_size = 10  # gpu handles 10 examples at a time
+batch_size = 10
 train_set = torchvision.datasets.FashionMNIST(root='./data', train=True, download=True, transform=transform)
 test_set = torchvision.datasets.FashionMNIST(root='./data', train=False, download=True, transform=transform)
 classes = ('T-shirt/top', 'Trouser', 'Pullover', 'Dress', 'Coat', 'Sandal', 'Shirt', 'Sneaker', 'Bag', 'Ankle boot')
@@ -60,8 +60,9 @@ class ConvoNet(nn.Module):
         x = self.drop1(x)
 
         x = self.out(x)
+        normalized_output = torch.tanh(x)
 
-        return x
+        return x, normalized_output
 
 
 if __name__ == '__main__':
@@ -80,27 +81,30 @@ if __name__ == '__main__':
         net.train(True)
         running_loss = 0.0
         running_accuracy = 0.0
+        total_samples = 0
 
-        for batch_i, data in enumerate(train_loader):
+        i = 0
+
+        for data in train_loader:
+            print(f'training data #{i+1} out of {len(train_loader)}')
+            i += 1
             inputs, labels = data[0].to(device), data[1].to(device)
             optimizer.zero_grad()
 
-            outputs = net(inputs)  # shape: [batch_size, 10]
+            outputs, _ = net(inputs)  # shape: [1, 10]
             correct = torch.sum(labels == torch.argmax(outputs, dim=1)).item()
-            running_accuracy += correct / batch_size
+            running_accuracy += correct
 
             loss = criterion(outputs, labels)
             running_loss += loss.item()
+            total_samples += labels.size(0)
 
             loss.backward()
             optimizer.step()
 
-            if batch_i % 500 == 499:  # print statistics every 500 batches
-                avg_loss = running_loss / 500
-                avg_acc = (running_accuracy / 500) * 100
-                print(f'batch {batch_i}, loss: {avg_loss}, accuracy: {avg_acc}')
-                running_loss = 0
-                running_accuracy = 0
+        avg_loss = running_loss / len(train_loader)
+        avg_acc = (running_accuracy / total_samples) * 100
+        print(f'training loss: {avg_loss}, accuracy: {avg_acc}')
 
         print()
 
@@ -108,46 +112,53 @@ if __name__ == '__main__':
     def validate_epoch():
         net.train(False)
         running_loss = 0.0
-        running_accuracy = 0.0
+        correct = 0
+        total_samples = 0
 
-        for i, data in enumerate(validation_loader):
+        for data in validation_loader:
             inputs, labels = data[0].to(device), data[1].to(device)
 
             with torch.no_grad():
-                outputs = net(inputs)  # shape: [batch_size, 10]
-                correct = torch.sum(labels == torch.argmax(outputs, dim=1)).item()
-                running_accuracy += correct / batch_size
+                outputs, _ = net(inputs)
+                correct += torch.sum(labels == torch.argmax(outputs, dim=1)).item()
                 loss = criterion(outputs, labels)
                 running_loss += loss.item()
+                total_samples += labels.size(0)
 
         avg_loss = running_loss / len(validation_loader)
-        avg_acc = (running_accuracy / len(validation_loader)) * 100
-
+        avg_acc = (correct / total_samples) * 100
         print(f'validation loss: {avg_loss}, validation accuracy: {avg_acc}\n')
+
+    def train(num_epochs=1):
+        for epoch_i in range(num_epochs):
+            print(f'training epoch {epoch_i}')
+            train_epoch()
+            validate_epoch()
+        print('training complete')
 
 
     def test():
-        net.train(False)
-        running_accuracy = 0.0
-        for batch_i, data in enumerate(test_loader):
-            print(f'testing batch {batch_i}')
-            inputs, labels = data[0].to(device), data[1].to(device)
+        net.eval()
+        correct = 0
+        total_samples = 0
 
-            outputs = net(inputs)  # shape: [batch_size, 10]
-            correct = torch.sum(labels == torch.argmax(outputs, dim=1)).item()
-            running_accuracy += correct / batch_size
+        with torch.no_grad():
+            for data in test_loader:
+                inputs, labels = data[0].to(device), data[1].to(device)
+                outputs, _ = net(inputs)
+                correct += torch.sum(labels == torch.argmax(outputs, dim=1)).item()
+                total_samples += labels.size(0)
 
-        avg_acc = (running_accuracy / len(test_loader)) * 100
-        print(f'test accuracy: {avg_acc}')
+        print(f'test accuracy: {correct / total_samples * 100}')
 
-
-    # training loop
-    num_epochs = 1
-    for epoch_i in range(num_epochs):
-        print(f'training epoch {epoch_i}')
-        train_epoch()
-        validate_epoch()
-    print('training complete')
-
+    train()
     test()
 
+
+# next steps:
+# - create hypervector encodings for bins for the ranges of the tan-h normalization
+# - create hypervector encodings for the component locations
+# - make an encode function that intakes an image and returns the vectorized output of inputting that image into the NN
+# - bind those output vectors with the classes, summing into a single HIL
+# - test with the test set  (encode same way the training examples were encoded via NN, follow standard XOR and hamming
+#   distance minimization techniques for prediction)
