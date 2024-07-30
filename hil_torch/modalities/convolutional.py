@@ -1,5 +1,9 @@
 # using hypervector encodings of convolutional feature signals from a CNN
 
+import vector as vec
+import numpy as np
+from bases import output_vecs, pos_vecs
+
 import torch
 import torchvision
 import torchvision.transforms as transforms
@@ -65,6 +69,92 @@ class ConvoNet(nn.Module):
         return x, normalized_output
 
 
+def encode_bins(num_bins):
+    edges = np.linspace(-1, 1, num_bins)
+    bin_vecs = [vec.Vector()]
+
+    num_changes = 5000 // num_bins
+
+    for i in range(num_bins):  # gradually change the vector for the first bin
+        new_bits = bin_vecs[-1].bits.clone()
+        for j in range(i * num_changes, (i + 1) * num_changes):
+            new_bits[j] ^= 1
+        bin_vecs.append(vec.Vector(new_bits))
+
+    return bin_vecs, edges
+
+
+# encodes an image into vector form by using the output layer of the CNN
+def encode_nn(img):
+    net.eval()
+    with torch.no_grad():
+        _, normalized_output = net(img.unsqueeze(0))
+        digitized = np.digitize(normalized_output.cpu().numpy(), bins=edge_vals)[0]
+
+        print(normalized_output)
+        print(digitized)
+
+        vecs = []
+
+        for i in range(len(digitized)):  # bind each signal bin to component position
+            vecs.append(vec.xor(bins[digitized[i]], pos_vecs[i]))
+
+        return vec.consensus_sum(vecs)
+
+
+def train_test_hd(num_examples, train_loader, test_loader):
+    # train
+    class_vecs = {i: [] for i in range(10)}
+
+    for i, data in enumerate(train_loader):
+        print(f'encoding vector #{i + 1}')
+        if i == num_examples:
+            break
+        inputs, labels = data[0].to(device), data[1].to(device)
+
+        for image, label in zip(inputs, labels):
+            class_vecs[label.item()].append(encode_nn(image))
+
+    sums = []
+    for i in range(10):
+        cons = vec.consensus_sum(class_vecs[i])
+        if cons is not None:
+            sums.append(cons)
+
+    bound_vecs = []
+    count = 0
+    for sum_vec in sums:
+        bound_vecs.append(vec.xor(sum_vec, output_vecs[count]))
+        count += 1
+
+    hil = vec.consensus_sum(bound_vecs)
+
+    # test
+    correct = 0
+    total = 0.0
+    for i, data in enumerate(test_loader):
+        if i == 100:  # testing on 100 batches
+            break
+        inputs, labels = data[0].to(device), data[1].to(device)
+
+        for image, label in zip(inputs, labels):
+            print(f'testing vector #{i + 1}')
+            total += 1
+            t = encode_nn(image)
+            res = vec.xor(hil, t)
+            min_hd = 10000
+            prediction = -1
+            for j in range(10):
+                cur_hd = vec.hamming_distance(res, output_vecs[j])
+                if cur_hd < min_hd:
+                    min_hd = cur_hd
+                    prediction = j
+            if prediction == label.item():
+                correct += 1
+
+    return correct / total
+
+
 if __name__ == '__main__':
     train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=2)
     validation_loader = torch.utils.data.DataLoader(validation_set, batch_size=batch_size, shuffle=False, num_workers=2)
@@ -86,7 +176,7 @@ if __name__ == '__main__':
         i = 0
 
         for data in train_loader:
-            print(f'training data #{i+1} out of {len(train_loader)}')
+            print(f'training data #{i + 1} out of {len(train_loader)}')
             i += 1
             inputs, labels = data[0].to(device), data[1].to(device)
             optimizer.zero_grad()
@@ -129,6 +219,7 @@ if __name__ == '__main__':
         avg_acc = (correct / total_samples) * 100
         print(f'validation loss: {avg_loss}, validation accuracy: {avg_acc}\n')
 
+
     def train(num_epochs=1):
         for epoch_i in range(num_epochs):
             print(f'training epoch {epoch_i}')
@@ -151,14 +242,13 @@ if __name__ == '__main__':
 
         print(f'test accuracy: {correct / total_samples * 100}')
 
+
     train()
-    test()
+    # test()
 
+    bins, edge_vals = encode_bins(50)
 
-# next steps:
-# - create hypervector encodings for bins for the ranges of the tan-h normalization
-# - create hypervector encodings for the component locations
-# - make an encode function that intakes an image and returns the vectorized output of inputting that image into the NN
-# - bind those output vectors with the classes, summing into a single HIL
-# - test with the test set  (encode same way the training examples were encoded via NN, follow standard XOR and hamming
-#   distance minimization techniques for prediction)
+    print(train_test_hd(1000, train_loader, test_loader))
+
+# results (tested on 100 batches of size 10):
+# 60.8% accuracy, trained w/ 1000 examples
