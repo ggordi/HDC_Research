@@ -232,5 +232,3 @@ print(train_test(50))
 
 # 50,000 training examples, 71% accuracy
 # 50 training examples, 63% accuracy
-
-# --> need to run this script and visualize impact of training examples over time
