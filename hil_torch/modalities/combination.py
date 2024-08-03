@@ -24,6 +24,7 @@ encoders = {'SI': encode_si, 'QT': encode_qt, 'HIST': encode_hist, 'DCT': encode
 modality_vecs = {x: vec.Vector() for x in ['SI', 'QT', 'HIST', 'DCT', 'FFT']}
 
 
+# will soon change this to use binomial expansion
 def combined_hil(modalities, num_examples=1000):
     class_vecs = {i: [] for i in range(10)}
     for i in range(num_examples):
