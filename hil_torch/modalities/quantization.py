@@ -81,7 +81,7 @@ def encode_bins():
 
 
 # encode an image (matrix of pixel intensities) - each image is the sum of its pixel intensities bound to their location
-def encode_image(matrix):
+def encode_qt(matrix):
     pixel_vecs = []
 
     for row in range(0, len(matrix)):
@@ -100,7 +100,7 @@ def train_test(num_examples):
 
     for i in range(num_examples):
         print(f'encoding image {i+1}')
-        class_vecs[train_labels[i]].append(encode_image(train_images[i]))
+        class_vecs[train_labels[i]].append(encode_qt(train_images[i]))
 
     sums = []
     for i in range(10):
@@ -120,7 +120,7 @@ def train_test(num_examples):
     correct = 0
     for i in range(1000):
         print(f'testing image {i+1}')
-        t = encode_image(test_images[i])
+        t = encode_qt(test_images[i])
         res = vec.xor(hil, t)
 
         min_hd = 10000
@@ -139,11 +139,11 @@ def train_test(num_examples):
 
 
 (train_images, train_labels), (test_images, test_labels) = tf.keras.datasets.fashion_mnist.load_data()
-
+# 
 edges = [0, 11, 42, 69, 93, 116, 136, 155, 171, 185, 197, 207, 217, 226, 237, 255]  # calculate_bins() num_bins = 30
 bins = encode_bins()
 
-print(train_test(10000))
+# print(train_test(1000))
 
 # train/test results (testing on 1000 test set images)
 # - achieved 48.4% accuracy when trained on 1,000 examples

@@ -40,7 +40,7 @@ def create_histogram(matrix, width, height):
 
 
 # encode an image using the histogram of its pixel intensities
-def encode_histogram(matrix, width, height):
+def encode_hist(matrix, width=28, height=28):
     img_hist = create_histogram(matrix, width, height)
     vec_list = []
     for intensity, count in img_hist.items():
@@ -54,7 +54,7 @@ def train_test(num_examples):
     class_vecs = {i: [] for i in range(10)}
 
     for i in range(num_examples):
-        class_vecs[train_labels[i]].append(encode_histogram(train_images[i], 28, 28))
+        class_vecs[train_labels[i]].append(encode_hist(train_images[i], 28, 28))
 
     sums = []
     for i in range(10):
@@ -73,7 +73,7 @@ def train_test(num_examples):
     # test
     correct = 0
     for i in range(1000):
-        t = encode_histogram(test_images[i], 28, 28)
+        t = encode_hist(test_images[i], 28, 28)
         res = vec.xor(hil, t)
 
         min_hd = 10000
@@ -94,7 +94,7 @@ def train_test(num_examples):
 # train the model and test it
 (train_images, train_labels), (test_images, test_labels) = tf.keras.datasets.fashion_mnist.load_data()
 
-print(train_test(50000))
+# print(train_test(50000))
 
 # achieved 13.6% accuracy when trained on 10,000 examples and 35.8% accuracy when trained on 50,000 examples
 # in both cases, 1000 images from the test set were used

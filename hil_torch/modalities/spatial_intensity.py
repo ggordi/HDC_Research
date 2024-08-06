@@ -6,7 +6,7 @@ from intensities import intensity_vecs
 from bases import row_vecs, col_vecs, output_vecs
 import matplotlib.pyplot as plt
 
-def encode(matrix):
+def encode_si(matrix):
     pixels = []
     for row in range(0, len(matrix)):
         for col in range(0, len(matrix[0])):
@@ -37,7 +37,7 @@ def train_and_test(num_examples):
 
     for i in range(num_examples):  # append each encoded image to the corresponding class list
         print(f'cur i: {i}')
-        img = encode(train_images[i])
+        img = encode_si(train_images[i])
         class_vecs[train_labels[i]].append(img)
 
     sums = []
@@ -57,7 +57,7 @@ def train_and_test(num_examples):
     # testing
     correct = 0
     for i in range(100):
-        t = encode(test_images[i])
+        t = encode_si(test_images[i])
         res = vec.xor(hil, t)
 
         pre = predict(res)
@@ -68,21 +68,27 @@ def train_and_test(num_examples):
 
     return correct / 100
 
-accuracies = []
-training_sizes = []
-size = 10
+# print(train_and_test(1000))
 
-while size < 8000:
-    training_sizes.append(size)
-    accuracy = train_and_test(size) * 100
-    accuracies.append(accuracy)
-    size *= 2
+# accuracies = []
+# training_sizes = []
+# size = 10
+# 
+# while size < 8000:
+#     training_sizes.append(size)
+#     accuracy = train_and_test(size) * 100
+#     accuracies.append(accuracy)
+#     size *= 2
+# 
+# # Plotting the results
+# plt.plot(training_sizes, accuracies, marker='o')
+# plt.xscale('log')
+# plt.xlabel('Number of training examples')
+# plt.ylabel('Prediction accuracy (%) ')
+# plt.title('Effect of Increased Training Examples on Prediction Accuracy')
+# plt.grid(True)
+# plt.show()
 
-# Plotting the results
-plt.plot(training_sizes, accuracies, marker='o')
-plt.xscale('log')
-plt.xlabel('Number of training examples')
-plt.ylabel('Prediction accuracy (%) ')
-plt.title('Effect of Increased Training Examples on Prediction Accuracy')
-plt.grid(True)
-plt.show()
+
+# results:
+# - 1000 training examples = 57%

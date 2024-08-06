@@ -1,3 +1,5 @@
+# note: need to update 3x3 blocking to include overlapping, as of now it does not.
+
 # encoding images using sparse spectral features, using discrete cosine transform
 import numpy as np
 import tensorflow as tf
@@ -101,6 +103,6 @@ def train_test(num_examples):
 edges = calculate_edges(150)
 bin_vecs = encode_bins(150)
 
-print(train_test(1000))
+# print(train_test(1000))
 
 # 10.7% accuracy with 150 bins, 1000 examples
