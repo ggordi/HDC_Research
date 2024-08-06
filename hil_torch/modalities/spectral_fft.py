@@ -1,57 +1,75 @@
 # encoding images using sparse spectral features, computed via fast fourier transform
 
-import numpy as np
-import tensorflow as tf
 import vector as vec
 from bases import row_vecs, col_vecs, output_vecs
-import matplotlib.pyplot as plt
+import numpy as np
+import tensorflow as tf
 
 (train_images, train_labels), (test_images, test_labels) = tf.keras.datasets.fashion_mnist.load_data()
 
 
-# calculate bin edges based on percentiles
-def calculate_edges(num_bins):
-    # create bins for the frequencies shown in the dataset
-    f_train = np.abs(np.fft.fft2(train_images)).flatten()
-    return list(np.percentile(np.sort(f_train), np.linspace(0, 100, num_bins + 1)))
+drop = 90
+fft_min = 2047.2452255411417
+fft_max = 150387.0
+# fft_min, fft_max need to be updated with any change to drop, edges need to be updated with any change to num_bins
+num_bins = 24
+edges = [2047.2452255411417, 8228.068341143593, 14408.891456746045, 20589.714572348497, 26770.53768795095,
+         32951.360803553405, 39132.183919155854, 45313.0070347583, 51493.83015036076, 57674.653265963214,
+         63855.47638156566, 70036.29949716812, 76217.12261277057, 82397.94572837303, 88578.76884397547,
+         94759.59195957793, 100940.41507518038, 107121.23819078284, 113302.0613063853, 119482.88442198774,
+         125663.70753759019, 131844.53065319263, 138025.3537687951, 144206.17688439754, 150387.0]
 
 
-# linearly encode bins for the magnitudes of the frequencies in the images
-# adust this to nonlinear difference in bits
-def encode_bins(num_bins):
-    bins = [vec.Vector()]
-    changes = 5000 // num_bins
-    for i in range(0, num_bins):
-        cur_vec = bins[i]
-        next_bits = cur_vec.bits.clone()
-        for j in range(changes * i, changes * (i + 1)):
-            next_bits[j] ^= 1
-            bins.append(vec.Vector(next_bits))
-    return bins
+def define_bins():
+    # calculate the min and max value for the top desired percentage
+    mags = []
+    for image in train_images:
+        mags.extend(np.abs(np.fft.fft2(image)).flatten())
+    mags = np.array(mags)
+    threshold = np.percentile(mags, drop)
+    max_val = np.max(mags)
+    print(f' threshold value = {threshold} \n max value = {max_val}')
+    # calculate the bin edges according to the results above
+    bin_edges = np.linspace(fft_min, fft_max, num_bins + 1)
+    print(list(bin_edges))
 
 
-def encode_fft(matrix, drop_pct=0.9):
-    # fft the image and center zero frequency
-    f = np.fft.fft2(matrix)
-    f = np.fft.fftshift(f)
+def encode_bins():
+    bin_vectors = [vec.Vector()]
+    indexes = np.arange(10000)  # using vectors of length 10000
 
-    # compress the image
-    rows, cols = f.shape
-    drop_count = int(drop_pct * min(rows, cols))  # calculate number of frequencies to drop
-    # drop frequencies nearest to the center, which are the lowest
-    f[int(rows / 2 - drop_count):int(rows / 2 + drop_count), int(cols / 2 - drop_count):int(cols / 2 + drop_count)] = 0
+    for i in range(num_bins):
+        bin_bits = bin_vectors[-1].bits.clone()
+        to_change = np.random.choice(indexes, size=10000 // num_bins, replace=False)
+        for idx in to_change:
+            bin_bits[idx] ^= 1
+        indexes = np.setdiff1d(indexes, to_change)
+        bin_vectors.append(vec.Vector(bin_bits))
 
-    # bin the frequencies and hypervector encoding
-    f = np.digitize(np.abs(f), edges)
-    freq_vecs = []
-    for row in range(0, len(f)):
-        for col in range(0, len(f[row])):
-            if f[row][col] != 0:
-                freq_vec = bin_vecs[f[row][col]]
-                freq_vec = vec.xor(vec.xor(freq_vec, row_vecs[row]), col_vecs[col])  # bind magnitude to frequency
-                freq_vecs.append(freq_vec)
+    return bin_vectors
 
-    return vec.consensus_sum(freq_vecs)
+
+def encode_fft(image):
+    # perform fft on the image, calculate threshold
+    fft_res = np.abs(np.fft.fft2(image))
+    threshold = np.percentile(np.sort(fft_res.flatten()), drop)
+
+    # replace dropped frequencies with 0s
+    for row in range(len(fft_res)):
+        for col in range(len(fft_res[row])):
+            if fft_res[row][col] < threshold:
+                fft_res[row][col] = 0
+
+    # bin and encode the remaining values
+    fft_res = np.digitize(fft_res, edges)
+    image_vecs = []
+    for row in range(len(fft_res)):
+        for col in range(len(fft_res[row])):
+            if fft_res[row][col] > 0:
+                cur = vec.xor(vec.xor(bin_vecs[fft_res[row][col]], row_vecs[row]), col_vecs[col])
+                image_vecs.append(cur)
+
+    return vec.consensus_sum(image_vecs)
 
 
 # train and test
@@ -99,12 +117,16 @@ def train_test(num_examples):
     return correct / 1000
 
 
-edges = calculate_edges(32)
-bin_vecs = encode_bins(32)
+bin_vecs = encode_bins()
 
-print(train_test(1000))
+# print(define_bins())
 
-# 9.8% with 48 bins, 1000 training examples
-# 11.6% with 32 bins, 1000 training examples
-# 11.6% with 20 bins, 1000 training examples
-# 9.9% with 12 bins, 1000 training examples
+print(train_test(10000))
+
+# results:
+# 48.2% with 1000 examples, 24 bins
+# 49.4% with 10000 examples, 24 bins
+# 47.4% with 1000 examples, 32 bins
+# 48.3% with 10000 examples, 32 bins
+# 47.3% with 1000 examples, 48 bins
+# 49.7% with 10000 examples, 48 bins
