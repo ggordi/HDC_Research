@@ -65,24 +65,8 @@ def test_combined(modalities, hil, num_examples=1000):  # specify which modaliti
     return correct / num_examples
 
 
-# si_hil = combined_hil(['SI'])
-# print(test_combined(['SI'], si_hil))
-# qt_hil = combined_hil(['QT'])
-# print(test_combined(['QT'], qt_hil))
-# dct_hil = combined_hil(['DCT'])
-# print(f'DCT only = {test_combined(['DCT'], dct_hil)}')
-comb_hil = combined_hil(['HIST', 'QT', 'SI', 'DCT'])
-print(f'HIST + QT + SI + DCT = {test_combined(['HIST', 'QT', 'SI', 'DCT'], comb_hil)}')
+mods = ['SI', 'DCT']
+comb_hil = combined_hil(mods)
+print(f'{mods} = {test_combined(mods, comb_hil)}')
 
-
-# results, using 1000 training and testing examples
-# - SI only = 40.6%
-# - QT only = 54.4%
-# - HIST only = 14.5%
-# - DCT only = 11.5%
-# - SI and QT = 32.6%
-# - HIST and SI = 20.1%
-# - HIST and QT = 15.6%
-# - HIST, QT, and SI = 41.1%
-# - HIST, QT, SI, and DCT = 23.5%, 15.4%, 16.1%, 23.8%
-# something may be wrong here... why aren't accuracies increasing with the number of modalities used?
+# SI + DCT = 44%

@@ -68,8 +68,6 @@ def train_and_test(num_examples):
 
     return correct / 100
 
-# print(train_and_test(1000))
-
 # accuracies = []
 # training_sizes = []
 # size = 10
@@ -91,4 +89,9 @@ def train_and_test(num_examples):
 
 
 # results:
-# - 1000 training examples = 57%
+# - 1000 training examples = 57%, 56%
+
+total = 0
+for x in range(10):
+    total += train_and_test(1000)
+print(total / 10)

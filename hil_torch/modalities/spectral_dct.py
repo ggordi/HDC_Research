@@ -3,6 +3,7 @@
 import tensorflow as tf
 from scipy.fft import dctn
 import numpy as np
+import matplotlib.pyplot as plt
 
 import vector as vec
 from bases import output_vecs, pos_vecs
@@ -95,8 +96,10 @@ def train_test(num_examples):
     return correct / 1000
 
 
-num_bins = 32
+num_bins = 24
 edges = get_edges(0, 800)  # max frequency values will range from 0 to less than 800
 bin_vecs = encode_bins()
 
-print(train_test(10000))
+print(train_test(1000))
+
+# results with 1000 training examples (24, 32, 48 bins) avg ~60%
